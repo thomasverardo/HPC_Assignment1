@@ -2,10 +2,10 @@ In this section there are two folder: "matrix" folder with the code of the 1.2 e
 
 To compile them 
 ```
-mpic++ section1/ring_verardo.cpp -o ring_stats
-mpicc matrix/matrix1D.c -o matrix
-mpicc matrix/matrix2D.c -o matrix
-mpicc matrix/matrix3D.c -o matrix
+mpic++ section1/ring_verardo.cpp -o ring_verardo
+mpicc matrix/matrix1D.c -o matrix1D
+mpicc matrix/matrix2D.c -o matrix2D
+mpicc matrix/matrix3D.c -o matrix3D
 ```
 
 To execute
