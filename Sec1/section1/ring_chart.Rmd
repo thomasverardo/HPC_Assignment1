@@ -1,0 +1,321 @@
+---
+title: "Ass1_chart"
+author: "Verardo Thomas"
+date: "18/12/2021"
+output: pdf_document
+---
+
+## Section 1 (Ring)
+
+The first section was focused on the implementation on a ring throw processor code. Once implemented with the OpenMPI library, I runned the test throw different processor of the THIN node of ORFEO. The maximum number of processor in one thin node is 24 processor. I have taken notes of the runtime of all sent and received messagges. To compare different number of total processor, I did the sum and the average of the time to complete the ring execution of one processor. Then, for each different number of processor, I repeated 100 times the execution of the ring and I computed the mean. 
+
+
+```{r setup, include=FALSE}
+library("tidyverse")
+library(ggplot2)
+
+#There isn't the 24 processor, it is sballato
+
+mean_data_processor <- function(ring){
+    #If u want to consider also one processor (the first row of csv) do j=0 and range in for 1:24
+    j = 1
+    i = 2
+    mean_ring <- data.frame(matrix(ncol = 2, nrow = 0))
+    colnames(mean_ring) <- c("Processor", "Speed")
+    for (i in 2:24){
+        #temp <- j - 1
+        #cat(i,"-", j, " , ")
+        mean_ring <- mean_ring %>%
+            add_row(Processor = i, Speed = mean(ring[j+1:i,]$Speed))
+        j = j + i 
+        
+        
+    }
+    
+    return (mean_ring)
+}
+
+sum_data_processor <- function(ring){
+    #If u want to consider also one processor (the first row of csv) do j=0 and range in for 1:24
+    j = 1
+    i = 2
+    mean_ring <- data.frame(matrix(ncol = 2, nrow = 0))
+    colnames(mean_ring) <- c("Processor", "Speed")
+    for (i in 2:24){
+        #temp <- j - 1
+        #cat(i,"-", j, " , ")
+        mean_ring <- mean_ring %>%
+            add_row(Processor = i, Speed = sum(ring[j+1:i,]$Speed))
+        j = j + i 
+        
+        
+    }
+    
+    return (mean_ring)
+}
+
+```
+
+
+```{r include=FALSE}
+
+#thin default
+n = 100
+
+seq_for_speed = seq(2, (n*2), by=2)
+
+#prima di tutto faccio la somma tra i processori coinvolti nella run del ring di tutti i dati
+
+temp_list <- list()
+temp_list_mean <- list()
+for (i in 1:n){
+    file_name = paste("data/data_thin",i,".out", sep="")
+    temp_data <- data.frame(read.csv(file_name, col.names = c("Processor", "Speed"), header = F))
+    temp_data$Speed <- as.double(temp_data$Speed)
+    temp_data_mean1 <- sum_data_processor(temp_data)
+    temp_data_mean1_mean <- mean_data_processor(temp_data)
+    temp_list <- append(temp_list, temp_data_mean1)
+    temp_list_mean <- append(temp_list_mean, temp_data_mean1_mean)
+}
+
+#Poi prendo tutti i dati già sommati e ci faccio la media
+
+ring_thin_mean <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(ring_thin_mean) <- c("Processor", "Speed")
+ring_thin_mean_mean <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(ring_thin_mean_mean) <- c("Processor", "Speed")
+for (i in 1:23){
+    list_speed <- list()
+    list_speed_mean <- list()
+    for (j in seq_for_speed){
+        list_speed <- c(list_speed, as.double(temp_list[[j]][i]))
+        list_speed_mean <- c(list_speed_mean, as.double(temp_list_mean[[j]][i]))
+    }
+    ring_thin_mean <- ring_thin_mean %>%
+        add_row(Processor = temp_data_mean1$Processor[i], 
+                Speed = mean( sapply(list_speed, mean) #sapply to convert from a n list at 1 list with n numbers
+         )
+        )
+    ring_thin_mean_mean <- ring_thin_mean_mean %>%
+        add_row(Processor = temp_data_mean1_mean$Processor[i], 
+                Speed = mean( sapply(list_speed_mean, mean) #sapply to convert from a n list at 1 list with n numbers
+         )
+        )
+}
+
+
+#thin map by node
+n = 100
+
+temp_list <- list()
+temp_list_mean <- list()
+for (i in 1:n){
+    file_name = paste("data/data_thin_node",i,".out", sep="")
+    temp_data <- data.frame(read.csv(file_name, col.names = c("Processor", "Speed"), header = F))
+    temp_data$Speed <- as.double(temp_data$Speed)
+    temp_data_mean1 <- sum_data_processor(temp_data)
+    temp_data_mean1_mean <- mean_data_processor(temp_data)
+    temp_list <- append(temp_list, temp_data_mean1)
+    temp_list_mean <- append(temp_list_mean, temp_data_mean1_mean)
+}
+
+
+ring_thin_node_mean <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(ring_thin_node_mean) <- c("Processor", "Speed")
+ring_thin_node_mean_mean <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(ring_thin_node_mean_mean) <- c("Processor", "Speed")
+for (i in 1:23){
+    list_speed <- list()
+    list_speed_mean <- list()
+    for (j in seq_for_speed){
+        list_speed <- c(list_speed, as.double(temp_list[[j]][i]))
+        list_speed_mean <- c(list_speed_mean, as.double(temp_list_mean[[j]][i]))
+    }
+    ring_thin_node_mean <- ring_thin_node_mean %>%
+        add_row(Processor = temp_data_mean1$Processor[i], 
+                Speed = mean( sapply(list_speed, mean) #sapply to convert from a n list at 1 list with n numbers
+         )
+        )
+    ring_thin_node_mean_mean <- ring_thin_node_mean_mean %>%
+        add_row(Processor = temp_data_mean1_mean$Processor[i], 
+                Speed = mean( sapply(list_speed_mean, mean) #sapply to convert from a n list at 1 list with n numbers
+         )
+        )
+}
+
+#thin socket
+n = 100
+
+temp_list <- list()
+temp_list_mean <- list()
+for (i in 1:n){
+    file_name = paste("data/data_thin_socket",i,".out", sep="")
+    temp_data <- data.frame(read.csv(file_name, col.names = c("Processor", "Speed"), header = F))
+    temp_data$Speed <- as.double(temp_data$Speed)
+    temp_data_mean1 <- sum_data_processor(temp_data)
+    temp_data_mean1_mean <- mean_data_processor(temp_data)
+    temp_list <- append(temp_list, temp_data_mean1)
+    temp_list_mean <- append(temp_list_mean, temp_data_mean1_mean)
+}
+
+
+ring_thin_socket_mean <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(ring_thin_socket_mean) <- c("Processor", "Speed")
+ring_thin_socket_mean_mean <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(ring_thin_socket_mean_mean) <- c("Processor", "Speed")
+for (i in 1:23){
+    list_speed <- list()
+    list_speed_mean <- list()
+    for (j in seq_for_speed){
+        list_speed <- c(list_speed, as.double(temp_list[[j]][i]))
+        list_speed_mean <- c(list_speed_mean, as.double(temp_list_mean[[j]][i]))
+    }
+    ring_thin_socket_mean <- ring_thin_socket_mean %>%
+        add_row(Processor = temp_data_mean1$Processor[i], 
+                Speed = mean( sapply(list_speed, mean) #sapply to convert from a n list at 1 list with n numbers
+         )
+        )
+    ring_thin_socket_mean_mean <- ring_thin_socket_mean_mean %>%
+        add_row(Processor = temp_data_mean1_mean$Processor[i], 
+                Speed = mean( sapply(list_speed_mean, mean) #sapply to convert from a n list at 1 list with n numbers
+         )
+        )
+}
+
+
+#thin core
+n = 100
+
+temp_list <- list()
+temp_list_mean <- list()
+for (i in 1:n){
+    file_name = paste("data/data_thin_core",i,".out", sep="")
+    temp_data <- data.frame(read.csv(file_name, col.names = c("Processor", "Speed"), header = F))
+    temp_data$Speed <- as.double(temp_data$Speed)
+    temp_data_mean1 <- sum_data_processor(temp_data)
+    temp_data_mean1_mean <- mean_data_processor(temp_data)
+    temp_list <- append(temp_list, temp_data_mean1)
+    temp_list_mean <- append(temp_list_mean, temp_data_mean1_mean)
+}
+
+
+ring_thin_core_mean <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(ring_thin_core_mean) <- c("Processor", "Speed")
+ring_thin_core_mean_mean <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(ring_thin_core_mean_mean) <- c("Processor", "Speed")
+for (i in 1:23){
+    list_speed <- list()
+    list_speed_mean <- list()
+    for (j in seq_for_speed){
+        list_speed <- c(list_speed, as.double(temp_list[[j]][i]))
+        list_speed_mean <- c(list_speed_mean, as.double(temp_list_mean[[j]][i]))
+    }
+    ring_thin_core_mean <- ring_thin_core_mean %>%
+        add_row(Processor = temp_data_mean1$Processor[i], 
+                Speed = mean( sapply(list_speed, mean) #sapply to convert from a n list at 1 list with n numbers
+         )
+        )
+    ring_thin_core_mean_mean <- ring_thin_core_mean_mean %>%
+        add_row(Processor = temp_data_mean1_mean$Processor[i], 
+                Speed = mean( sapply(list_speed_mean, mean) #sapply to convert from a n list at 1 list with n numbers
+         )
+        )
+}
+
+```
+
+### Plot results
+
+I produce the plot in one thin node between different processor, to compare the differance mapping: defualt, node, socket or core.
+In the first plot it's possible to see that the default method is equal to the node method.
+
+```{r echo=FALSE}
+
+ggplot( data = ring_thin_mean, aes(x = Processor, y = Speed/1000)) +
+    
+    ggtitle("Mean execution time of the sum of process") +
+    xlab("N. of processor") +
+    ylab("Speed [ms]") +
+    
+    geom_point(aes(color="default")) +
+    #stat_smooth(method = "auto", color= "red", formula = 'y ~ x') +
+    geom_line(aes(color="default")) +
+    
+    geom_point(data = ring_thin_node_mean, aes(color = "node") )+
+    geom_line(data = ring_thin_node_mean, aes(color = "node")) +
+    
+    geom_point(data = ring_thin_socket_mean, aes(color = "socket")) +
+    geom_line(data = ring_thin_socket_mean, aes(color = "socket")) +
+    
+    geom_point(data = ring_thin_core_mean, aes(color = "core")) +
+    geom_line(data = ring_thin_core_mean, aes(color = "core")) +
+    
+    scale_colour_manual("", 
+                      breaks = c("default", "node", "socket", "core"),
+                      values = c("default" = "red","node" = "blue", "socket" = "yellow", "core" = "green")
+                      ) 
+
+
+# model_thin_thin <- ring_thin_mean %>% 
+#   group_by(Processor) %>% 
+#   summarize(mean_temperature=mean(Speed)) 
+# 
+# ggplot(data = ring_thin_mean, aes(x = Processor)) +
+#     geom_line(aes(y = Speed), color = "red") +
+#     geom_point(data = model_thin_thin, aes(y = mean_temperature), stat="summary", fun.y="mean")
+# 
+# ggplot(ring_thin_mean, aes(x=Processor, y=Speed)) + 
+#     geom_point(stat="summary", fun.y="mean") 
+
+```
+
+In this plot below, you can see the difference from using a difference number of process, but instead to do the sum over the different time to complete a ring for each process, the processes are averaged. Then, I create a model to better representing the data.
+You can see that the line representing the mapping by core is constant over the number of processes. In the other three lines, if the number of processes is 23 or 24, the speed is bigger than other measurements.  
+
+
+
+```{r echo=FALSE}
+
+ggplot( data = ring_thin_mean_mean, aes(x = Processor, y = Speed/1000)) +
+    
+    ggtitle("Mean execution time of the MEAN of process") +
+    xlab("N. of processor") +
+    ylab("Speed [ms]") +
+    
+    geom_point(aes(color="default")) +
+    stat_smooth(method = "loess", aes(color= "default"), formula = 'y ~ x') +
+    
+    geom_point(data = ring_thin_node_mean_mean, aes(color="node")) +
+    stat_smooth(data = ring_thin_node_mean_mean, method = "loess", aes(color= "node"), formula = 'y ~ x') +
+    
+    geom_point(data = ring_thin_socket_mean_mean, aes(color="socket")) +
+    stat_smooth(data = ring_thin_socket_mean_mean, method = "loess", aes(color= "socket"), formula = 'y ~ x') +
+    
+    geom_point(data = ring_thin_core_mean_mean, aes(color="core")) +
+    stat_smooth(data = ring_thin_core_mean_mean, method = "loess", aes(color= "core"), formula = 'y ~ x') +
+    
+    scale_colour_manual("", 
+                      breaks = c("default", "node", "socket", "core"),
+                      values = c("default" = "red","node" = "blue", "socket" = "yellow", "core" = "green")
+                      ) 
+
+```
+
+
+```{r include=FALSE}
+
+    
+```
+
+```{r include=FALSE}
+
+```
+
+```{r include=FALSE}
+
+```
+
+```{r include=FALSE}
+
+```
+

@@ -1,0 +1,933 @@
+---
+title: "Report Verardo Thomas"
+author: "Verardo Thomas"
+output:
+  pdf_document: pdf_document
+---
+
+## SECTION 2 
+
+In this section, the main purpose was to estimate the latency and the bandwidth of all available combinations of topologies and networks on ORFEO computational nodes. for finding the latency and the bandwidth with the OpenMPI library, I writed a bash script that first submitted a job for running the code in the CPU or in the GPU, and than runned it for 10 times for each topologies. In this way, I can take the maximum of the result of each topologies, so to have better data to study. 
+
+
+Inserire MPI_barrier()
+
+<!-- ```{bash eval=FALSE, include=TRUE} -->
+
+<!-- mpirun -np 2  --map-by node --report-bindings  ./IMB-MPI1 PingPong -->
+
+<!-- mpirun -np 2 --map-by node --mca pml ucx --mca btl ^uct -x UCX_NET_DEVICES=ib0  -->
+<!-- ./IMB-MPI1 PingPong -->
+
+<!-- mpirun -np 2 --map-by node --mca pml ucx -mca btl ^uct -x UCX_NET_DEVICES=br0  -->
+<!-- ./IMB-MPI1 PingPong -->
+
+<!-- mpirun -np 2 --map-by node --mca pml ucx -mca btl ^uct -x UCX_NET_DEVICES=mlx5_0:1  -->
+<!-- ./IMB-MPI1 PingPong -->
+
+<!-- mpirun -np 2 --map-by node --mca pml ob1 --mca btl tcp,self --mca btl_tcp_if_include br0  -->
+<!-- ./IMB-MPI1 PingPong -->
+
+<!-- ``` -->
+
+
+
+
+```{r include=FALSE}
+#Function to taking the maximum of all dataset in input
+max_dataset <- function(data_10){
+    n_rows = 24
+    n_rep = nrow(data_10)/n_rows
+    sep = seq(0, nrow(data_10), by = n_rows)
+    max = 0
+    mb_vector <- rep(0, 24) #bandwith
+    t_vector <- rep(0, 24) #latency
+    for (i in sep[1:length(sep)-1]){
+        if( i == 0 ){
+            data_1 <- data_10[i:n_rows,]
+        }else{
+            data_1 <- data_10[i+1:n_rows,]
+        }
+        
+        for (j in 1:24){
+            mb_vector[j] <- mb_vector[j] + data_1[j,4]
+            t_vector[j] <- t_vector[j] + data_1[j,3]
+        }
+        
+        # if (max < data_1[24,4]) { #The last Mbytes/sec
+        #     cool_data <- data_1
+        #     max = data_1[24,4]
+        # }
+    }
+    
+    mb_mean <- mb_vector / n_rep
+    t_mean <- t_vector / n_rep
+    
+    cool_data <- data.frame(Bytes=data_1$Bytes, Repetition=data_1$Repetition, t_usec=t_mean, Mbytes.sec=mb_mean)
+    
+    return(cool_data)
+}
+
+
+```
+
+```{r include=FALSE}
+library(ggplot2)
+require(gridExtra)
+
+thin_openmpi <- data.frame(read.csv('total_stats_thin_openmpi.csv', col.names = c('Bytes', 'Repetition', 't_usec', 'Mbytes.sec')))
+
+
+#Preprocess phase
+
+thin_openmpi <- thin_openmpi[thin_openmpi$Bytes != '#bytes', ]
+thin_openmpi$Mbytes.sec <- as.double(thin_openmpi$Mbytes.sec)
+thin_openmpi$t_usec <- as.double(thin_openmpi$t_usec)
+n_rows = 24*10
+sep = seq(0, nrow(thin_openmpi), by = n_rows)
+
+thin_openmpi_node_ucx<- max_dataset(thin_openmpi[sep[1]:n_rows,])
+thin_openmpi_node_ib0 <- max_dataset(thin_openmpi[sep[2]+1:n_rows,])
+thin_openmpi_node_br0 <- max_dataset(thin_openmpi[sep[3]+1:n_rows, ])
+thin_openmpi_node_mlx5_0 <- max_dataset(thin_openmpi[sep[4]+1:n_rows,])
+thin_openmpi_node_tcp <- max_dataset(thin_openmpi[sep[5]+1:n_rows,])
+thin_openmpi_core_ucx <- max_dataset(thin_openmpi[sep[6]+1:n_rows, ])
+thin_openmpi_core_tcp <- max_dataset(thin_openmpi[sep[7]+1:n_rows, ])
+thin_openmpi_core_vader <- max_dataset(thin_openmpi[sep[8]+1:n_rows, ])
+thin_openmpi_socket_ucx <- max_dataset(thin_openmpi[sep[9]+1:n_rows,])
+thin_openmpi_socket_tcp <- max_dataset(thin_openmpi[sep[10]+1:n_rows, ])
+thin_openmpi_socket_vader <- max_dataset(thin_openmpi[sep[11]+1:n_rows, ])
+
+
+labels_stats <- c("node_ucx", "node_ib0", "node_br0", "node_mlx5_0", "node_tcp", "core_ucx", "core_tcp", "core_vader", "socket_ucx", "socket_tcp", "socket_vader")
+
+
+
+
+
+gpu_openmpi <- data.frame(read.csv('total_stats_gpu_openmpi.csv', col.names = c('Bytes', 'Repetition', 't_usec', 'Mbytes.sec')))
+
+
+#Preprocess phase
+
+gpu_openmpi <- gpu_openmpi[gpu_openmpi$Bytes != '#bytes', ]
+gpu_openmpi$Mbytes.sec <- as.double(gpu_openmpi$Mbytes.sec)
+gpu_openmpi$t_usec <- as.double(gpu_openmpi$t_usec)
+n_rows = 24*10
+sep = seq(0, nrow(gpu_openmpi), by = n_rows)
+
+gpu_openmpi_node_ucx <- max_dataset(gpu_openmpi[sep[1]:n_rows,])
+gpu_openmpi_node_ib0 <- max_dataset(gpu_openmpi[sep[2]+1:n_rows,])
+gpu_openmpi_node_br0 <- max_dataset(gpu_openmpi[sep[3]+1:n_rows, ])
+gpu_openmpi_node_mlx5_0 <- max_dataset(gpu_openmpi[sep[4]+1:n_rows,])
+gpu_openmpi_node_tcp <- max_dataset(gpu_openmpi[sep[5]+1:n_rows,])
+gpu_openmpi_core_ucx <- max_dataset(gpu_openmpi[sep[6]+1:n_rows, ])
+gpu_openmpi_core_tcp <- max_dataset(gpu_openmpi[sep[7]+1:n_rows, ])
+gpu_openmpi_core_vader <- max_dataset(gpu_openmpi[sep[8]+1:n_rows, ])
+gpu_openmpi_socket_ucx <- max_dataset(gpu_openmpi[sep[9]+1:n_rows,])
+gpu_openmpi_socket_tcp <- max_dataset(gpu_openmpi[sep[10]+1:n_rows, ])
+gpu_openmpi_socket_vader <- max_dataset(gpu_openmpi[sep[11]+1:n_rows, ])
+
+
+
+#INTELMPI
+
+labels_stats_intel <- c("def", "core", "node", "socket")
+
+thin_intelmpi <- data.frame(read.csv('total_stats_thin_intelmpi.csv', col.names = c('Bytes', 'Repetition', 't_usec', 'Mbytes.sec')))
+
+#Preprocess phase
+
+thin_intelmpi <- thin_intelmpi[thin_intelmpi$Bytes != '#bytes', ]
+thin_intelmpi$Mbytes.sec <- as.double(thin_intelmpi$Mbytes.sec)
+thin_intelmpi$t_usec <- as.double(thin_intelmpi$t_usec)
+n_rows = 24 * 10 #24 rows * 10 repetition
+sep = seq(0, nrow(thin_intelmpi), by = n_rows)
+
+thin_intelmpi_def <- max_dataset(thin_intelmpi[sep[1]:n_rows,]) #default configuration
+thin_intelmpi_core <- max_dataset(thin_intelmpi[sep[2]+1:n_rows,])
+thin_intelmpi_node <- max_dataset(thin_intelmpi[sep[3]+1:n_rows,])
+thin_intelmpi_socket <- max_dataset(thin_intelmpi[sep[4]+1:n_rows,])
+
+
+
+
+gpu_intelmpi <- data.frame(read.csv('total_stats_gpu_intelmpi.csv', col.names = c('Bytes', 'Repetition', 't_usec', 'Mbytes.sec')))
+
+#Preprocess phase
+
+gpu_intelmpi <- gpu_intelmpi[gpu_intelmpi$Bytes != '#bytes', ]
+gpu_intelmpi$Mbytes.sec <- as.double(gpu_intelmpi$Mbytes.sec)
+gpu_intelmpi$t_usec <- as.double(gpu_intelmpi$t_usec)
+n_rows = 24 * 10 #24 rows * 10 repetition
+sep = seq(0, nrow(gpu_intelmpi), by = n_rows)
+
+gpu_intelmpi_def <- max_dataset(gpu_intelmpi[sep[1]:n_rows,]) #default configuration
+gpu_intelmpi_core <- max_dataset(gpu_intelmpi[sep[2]+1:n_rows,])
+gpu_intelmpi_node <- max_dataset(gpu_intelmpi[sep[3]+1:n_rows,])
+gpu_intelmpi_socket <- max_dataset(gpu_intelmpi[sep[4]+1:n_rows,])
+
+
+#Y-axis chart factor
+x <- factor(thin_openmpi_node_ucx$Bytes, levels=unique(thin_openmpi_node_ucx$Bytes))
+t <- factor(thin_openmpi_node_ucx$t_usec, levels=unique(thin_openmpi_node_ucx$t_usec))
+
+```
+
+
+
+
+
+
+
+### OpenMPI
+
+First of all, I did a benchmark with OpenMPI of some topologies that I found. The topologies tested in PingPong for across 2 nodes that I found were these:
+
+* \ _node_ucx_: Use the UCX communication library over InfiniBand using the default configuration
+
+* \ _node_ib0_: Use the InfiniBand adabter over the TCP/IP protocol
+
+* \ _node_br0_: Use UCX with Ethernet (and so also the protocol TCP/IP)
+
+* \ _node_mlx5_0_1_: Use UCX but with the configuration 0 of the interface number (InfiniBand, that is the default one)
+
+* \ _node_tcp_: Use ob1 communication library, that is a multi-device and multi-rail engine
+
+In the first graph we can see the difference between the communication protocol and their interfaces. This plots are made with Thin nodes using the OpenMPI library. In particolar, _node_ucx_ and _node_mlx5_0_, also with different package size, have equal bandwidth; this because _node_mlx5_0_ describes the default configuration, that is _node_ucx_. In the graph, with message size very high, you can see the difference between the default configuration and the new configuration with _ib0_, _br0_ and the last one that uses _ob1_ as point-to-point messaging layer and _TCP_ as byte transfer layer.  
+Then I did the same benchmark across 2 socket and across 2 nodes. The results are in the second graph. In both, I first used the default configuration and then I tried to use a different PML. In fact, I used _ob1_ as PML and first I used _TCP_ as BTL and then I used _Vader_ (that used shared memory). In this graph you can see that send messages across 2 core is faster than sending messages across 2 socket. This because cores are within the same socket and are physically closer.
+
+
+The main difference between the chart of the nodes and the chart of the cores and sockets is that in the first one, the line continue to rise without never discending and so the bandwith is always getting bigger as the size memory. In my opinion, in the core and socket chart, there is this descending curve because the L2 cache fills up if the message size is grater than 1024 KB (1048576 B) and the message goes in the L3 cache, that can save up to 14080 KB.
+
+
+<!-- il messaggio non sta dentro la cache L2 e dopo 2000000byte va in L3 -->
+
+<!--  size cache: -->
+<!--    - L1 32 KB -->
+<!--    - l2 1024 KB -->
+<!--    - L3 14080 KB -->
+
+<!-- cat /sys/devices/system/cpu/cpu0/cache/index1/size -->
+
+
+<!--  ---------------- br0 -> ETHERNET -->
+<!--  ib0 -> infiniband con protocollo tcp/ip (e comunque 100Gbit) -->
+
+<!--  ucx non funziona con br0 -->
+
+<!--  ucx è un protocollo come tcp -->
+
+
+
+```{r echo=FALSE}
+
+plot_thin_node <- ggplot(data = NULL, aes(x = factor(x))) +
+    
+    ggtitle("By node -- OpenMPI") +
+    xlab("Size message") + 
+    ylab("Mbytes/sec") +
+    
+    geom_line(data = thin_openmpi_node_ucx, aes(y = Mbytes.sec, color = "node_ucx") , group = 1) +
+    geom_point(data = thin_openmpi_node_ucx, aes(y = Mbytes.sec, color = "node_ucx")) +
+    geom_point(data = thin_openmpi_node_ib0, aes(y = Mbytes.sec, color = "node_ib0")) +
+    geom_line(data = thin_openmpi_node_ib0, aes(y = Mbytes.sec, color = "node_ib0"), group = 1) +
+    geom_point(data = thin_openmpi_node_br0, aes(y = Mbytes.sec, color = "node_br0")) +
+    geom_line(data = thin_openmpi_node_br0, aes(y = Mbytes.sec, color = "node_br0"), group = 1) +
+    geom_point(data = thin_openmpi_node_mlx5_0, aes(y = Mbytes.sec, color = "node_mlx5_0")) +
+    geom_line(data = thin_openmpi_node_mlx5_0, aes(y = Mbytes.sec, color = "node_mlx5_0"), group = 1) +
+    geom_point(data = thin_openmpi_node_tcp, aes(y = Mbytes.sec, color = "node_tcp")) +
+    geom_line(data = thin_openmpi_node_tcp, aes(y = Mbytes.sec, color = "node_tcp"), group = 1) +
+    
+    scale_colour_manual("", 
+                      breaks = labels_stats,
+                      values = c("node_ucx"="green", "node_ib0"="red", "node_br0"="blue", "node_mlx5_0"="grey",
+                                 "node_tcp"="cyan")) +
+
+    scale_x_discrete(guide = guide_axis(angle = 90)) +
+    theme(legend.position = "top")
+
+
+
+plot_thin_socket <- ggplot(data = NULL, aes(x = factor(x))) +
+    
+    ggtitle("By socket, core -- OpenMPI") +
+    xlab("Size message") + 
+    ylab("Mbytes/sec") +
+    
+    geom_point(data = thin_openmpi_core_ucx, aes(y = Mbytes.sec, color = "core_ucx")) +
+    geom_line(data = thin_openmpi_core_ucx, aes(y = Mbytes.sec, color = "core_ucx"), group = 1) +
+    geom_point(data = thin_openmpi_core_tcp, aes(y = Mbytes.sec, color = "core_tcp")) +
+    geom_line(data = thin_openmpi_core_tcp, aes(y = Mbytes.sec, color = "core_tcp"), group = 1) +
+    geom_point(data = thin_openmpi_core_vader, aes(y = Mbytes.sec, color = "core_vader")) +
+    geom_line(data = thin_openmpi_core_vader, aes(y = Mbytes.sec, color = "core_vader"), group = 1) +
+    geom_point(data = thin_openmpi_socket_ucx, aes(y = Mbytes.sec, color = "socket_ucx")) +
+    geom_line(data = thin_openmpi_socket_ucx, aes(y = Mbytes.sec, color = "socket_ucx"), group = 1) +
+    geom_point(data = thin_openmpi_socket_tcp, aes(y = Mbytes.sec, color = "socket_tcp")) +
+    geom_line(data = thin_openmpi_socket_tcp, aes(y = Mbytes.sec, color = "socket_tcp"), group = 1) +
+    geom_point(data = thin_openmpi_socket_vader, aes(y = Mbytes.sec, color = "socket_vader")) +
+    geom_line(data = thin_openmpi_socket_vader, aes(y = Mbytes.sec, color = "socket_vader"), group = 1) +
+    
+    scale_colour_manual("", 
+                      breaks = labels_stats,
+                      values = c("core_ucx"="darkgreen", "core_tcp"="darkred", "core_vader"="yellow",
+                                 "socket_ucx"="orange", "socket_tcp"="pink", "socket_vader"="magenta")) +
+
+    scale_x_discrete(guide = guide_axis(angle = 90)) +
+    theme(legend.position = "top")
+
+grid.arrange(plot_thin_node, plot_thin_socket, ncol=2)
+
+    
+```
+
+Intead, in the nodes chart, I think that is different from the sockets and cores chart because Infiniband provides native support for RDAM (Remote Direct Memory Access). In fact, integral to RDMA is the concept of zero-copy networking, which makes it possible to read data directly from the main memory of one computer and write that data directly to the main memory of another computer. RDMA data transfers bypass the kernel networking stack in both computers, so it doesn't have to pack and unpack the message, improving network performance. As a result, the conversation between the two systems will complete much quicker than comparable non-RDMA networked systems.
+
+Then, I did the charts also in the GPU nodes (see the [github repository](https://github.com/thomasverardo/HPC_Assignment1)).
+
+```{r echo=FALSE}
+gpu_mean <- mean(gpu_openmpi$Mbytes.sec)
+thin_mean <- mean(thin_openmpi$Mbytes.sec)
+
+ggplot(data = NULL, aes(x = factor(x))) +
+    
+    ggtitle("Comparison from GPU and THIN CPU -- by node -- OpenMPI") +
+    xlab("Size message") + 
+    ylab("Mbytes/sec") +
+    
+    geom_line(data = gpu_openmpi_node_ucx, aes(y = Mbytes.sec, color = "gpu") , group = 1) +
+    geom_point(data = gpu_openmpi_node_ucx, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_point(data = gpu_openmpi_node_ib0, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_line(data = gpu_openmpi_node_ib0, aes(y = Mbytes.sec, color = "gpu"), group = 1) +
+    geom_point(data = gpu_openmpi_node_br0, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_line(data = gpu_openmpi_node_br0, aes(y = Mbytes.sec, color = "gpu"), group = 1) +
+    geom_point(data = gpu_openmpi_node_mlx5_0, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_line(data = gpu_openmpi_node_mlx5_0, aes(y = Mbytes.sec, color = "gpu"), group = 1) +
+    geom_point(data = gpu_openmpi_node_tcp, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_line(data = gpu_openmpi_node_tcp, aes(y = Mbytes.sec, color = "gpu"), group = 1) +
+    
+    geom_line(data = thin_openmpi_node_ucx, aes(y = Mbytes.sec, color = "thin") , group = 1) +
+    geom_point(data = thin_openmpi_node_ucx, aes(y = Mbytes.sec, color = "thin")) +
+    geom_point(data = thin_openmpi_node_ib0, aes(y = Mbytes.sec, color = "thin")) +
+    geom_line(data = thin_openmpi_node_ib0, aes(y = Mbytes.sec, color = "thin"), group = 1) +
+    geom_point(data = thin_openmpi_node_br0, aes(y = Mbytes.sec, color = "thin")) +
+    geom_line(data = thin_openmpi_node_br0, aes(y = Mbytes.sec, color = "thin"), group = 1) +
+    geom_point(data = thin_openmpi_node_mlx5_0, aes(y = Mbytes.sec, color = "thin")) +
+    geom_line(data = thin_openmpi_node_mlx5_0, aes(y = Mbytes.sec, color = "thin"), group = 1) +
+    geom_point(data = thin_openmpi_node_tcp, aes(y = Mbytes.sec, color = "thin")) +
+    geom_line(data = thin_openmpi_node_tcp, aes(y = Mbytes.sec, color = "thin"), group = 1) +
+    
+    geom_hline(yintercept =  gpu_mean, linetype="dashed", color = "blue") +
+    #geom_text(aes(4,gpu_mean+500), label="GPU mean") +
+    geom_hline(yintercept =  thin_mean, linetype="dashed", color = "orange") +
+    geom_text(aes(2,thin_mean+500), label="Mean") +
+    
+    
+    
+    scale_colour_manual("", 
+                      breaks = c("thin", "gpu"),
+                      values = c("thin" = "orange","gpu" = "blue")
+                      ) +
+
+    scale_x_discrete(guide = guide_axis(angle = 90)) 
+    
+    
+```
+
+Here there is the comparison between the benchmark in the Thin CPU nodes or in the GPU nodes. You can see from this chart and from the mean, that the Thin node is faster then the GPU node. 
+<!-- This because, given that it's used the Hyperthreading, the nodes are closer each other in the GPU. -->
+
+```{r include=FALSE}
+gpu_mean <- mean(gpu_openmpi$Mbytes.sec)
+thin_mean <- mean(thin_openmpi$Mbytes.sec)
+
+jpeg("img/comparison_socket_OpenMPI.jpeg")
+
+ggplot(data = NULL, aes(x = factor(x))) +
+    
+    ggtitle("Comparison from GPU and THIN CPU -- by core, socket -- OpenMPI") +
+    xlab("Size message") + 
+    ylab("Mbytes/sec") +
+    
+    geom_point(data = gpu_openmpi_core_ucx, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_line(data = gpu_openmpi_core_ucx, aes(y = Mbytes.sec, color = "gpu"), group = 1) +
+    geom_point(data = gpu_openmpi_core_tcp, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_line(data = gpu_openmpi_core_tcp, aes(y = Mbytes.sec, color = "gpu"), group = 1) +
+    geom_point(data = gpu_openmpi_core_vader, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_line(data = gpu_openmpi_core_vader, aes(y = Mbytes.sec, color = "gpu"), group = 1) +
+    geom_point(data = gpu_openmpi_socket_ucx, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_line(data = gpu_openmpi_socket_ucx, aes(y = Mbytes.sec, color = "gpu"), group = 1) +
+    geom_point(data = gpu_openmpi_socket_tcp, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_line(data = gpu_openmpi_socket_tcp, aes(y = Mbytes.sec, color = "gpu"), group = 1) +
+    geom_point(data = gpu_openmpi_socket_vader, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_line(data = gpu_openmpi_socket_vader, aes(y = Mbytes.sec, color = "gpu"), group = 1) +
+    
+    geom_point(data = thin_openmpi_core_ucx, aes(y = Mbytes.sec, color = "thin")) +
+    geom_line(data = thin_openmpi_core_ucx, aes(y = Mbytes.sec, color = "thin"), group = 1) +
+    geom_point(data = thin_openmpi_core_tcp, aes(y = Mbytes.sec, color = "thin")) +
+    geom_line(data = thin_openmpi_core_tcp, aes(y = Mbytes.sec, color = "thin"), group = 1) +
+    geom_point(data = thin_openmpi_core_vader, aes(y = Mbytes.sec, color = "thin")) +
+    geom_line(data = thin_openmpi_core_vader, aes(y = Mbytes.sec, color = "thin"), group = 1) +
+    geom_point(data = thin_openmpi_socket_ucx, aes(y = Mbytes.sec, color = "thin")) +
+    geom_line(data = thin_openmpi_socket_ucx, aes(y = Mbytes.sec, color = "thin"), group = 1) +
+    geom_point(data = thin_openmpi_socket_tcp, aes(y = Mbytes.sec, color = "thin")) +
+    geom_line(data = thin_openmpi_socket_tcp, aes(y = Mbytes.sec, color = "thin"), group = 1) +
+    geom_point(data = thin_openmpi_socket_vader, aes(y = Mbytes.sec, color = "thin")) +
+    geom_line(data = thin_openmpi_socket_vader, aes(y = Mbytes.sec, color = "thin"), group = 1) +
+    
+    geom_hline(yintercept =  gpu_mean, linetype="dashed", color = "blue") +
+    #geom_text(aes(4,gpu_mean+500), label="GPU mean") +
+    geom_hline(yintercept =  thin_mean, linetype="dashed", color = "orange") +
+    geom_text(aes(2,thin_mean+700), label="Mean") +
+    
+    
+    
+    scale_colour_manual("", 
+                      breaks = c("thin", "gpu"),
+                      values = c("thin" = "orange","gpu" = "blue")
+                      ) +
+
+    scale_x_discrete(guide = guide_axis(angle = 90)) 
+    
+dev.off()
+    
+```
+
+
+### IntelMPI
+
+After doing all charts of the PingPong benchmark with OpenMPI for the topologies that I mentioned before across two nodes, two sockets and two core in the Thin CPU nodes and in GPU nodes of ORFEO, I taken new data with the IntelMPI library. 
+Therefore, I ran the PingPong code first with the defaul configuration, and than across two nodes, across 2 sockets and in the end across two core.
+
+```{r echo=FALSE}
+
+
+ggplot(data = NULL, aes(x = factor(x))) +
+    
+    ggtitle("THIN core, node, socket -- IntelMPI") +
+    xlab("Size message") + 
+    ylab("Mbytes/sec") +
+    
+    geom_line(data = thin_intelmpi_def, aes(y = Mbytes.sec, color = "def") , group = 1) +
+    geom_point(data = thin_intelmpi_def, aes(y = Mbytes.sec, color = "def")) +
+    geom_point(data = thin_intelmpi_core, aes(y = Mbytes.sec, color = "core")) +
+    geom_line(data = thin_intelmpi_core, aes(y = Mbytes.sec, color = "core"), group = 1) +
+    geom_point(data = thin_intelmpi_node, aes(y = Mbytes.sec, color = "node")) +
+    geom_line(data = thin_intelmpi_node, aes(y = Mbytes.sec, color = "node"), group = 1) +
+    geom_point(data = thin_intelmpi_socket, aes(y = Mbytes.sec, color = "socket")) +
+    geom_line(data = thin_intelmpi_socket, aes(y = Mbytes.sec, color = "socket"), group = 1) +
+    
+    scale_colour_manual("", 
+                      breaks = labels_stats_intel,
+                      values = c("def"="green", "core"="red", "node"="blue", "socket"="black")) +
+
+    scale_x_discrete(guide = guide_axis(angle = 90)) 
+    
+    
+```
+
+Also with the IntelMPI library, it's easy to see that the line that represent the PingPong across 2 core is the only line that at one moment no longer grows, without considering the default line.
+
+```{r eval=FALSE, include=FALSE}
+
+#GPU
+jpeg("img/gpu_openmpi_node.jpeg")
+
+ggplot(data = NULL, aes(x = factor(x))) +
+    
+    ggtitle("gpu node -- by node -- OpenMPI") +
+    xlab("Size message") + 
+    ylab("Mbytes/sec") +
+    
+    geom_line(data = gpu_openmpi_node_ucx, aes(y = Mbytes.sec, color = "node_ucx") , group = 1) +
+    geom_point(data = gpu_openmpi_node_ucx, aes(y = Mbytes.sec, color = "node_ucx")) +
+    geom_point(data = gpu_openmpi_node_ib0, aes(y = Mbytes.sec, color = "node_ib0")) +
+    geom_line(data = gpu_openmpi_node_ib0, aes(y = Mbytes.sec, color = "node_ib0"), group = 1) +
+    geom_point(data = gpu_openmpi_node_br0, aes(y = Mbytes.sec, color = "node_br0")) +
+    geom_line(data = gpu_openmpi_node_br0, aes(y = Mbytes.sec, color = "node_br0"), group = 1) +
+    geom_point(data = gpu_openmpi_node_mlx5_0, aes(y = Mbytes.sec, color = "node_mlx5_0")) +
+    geom_line(data = gpu_openmpi_node_mlx5_0, aes(y = Mbytes.sec, color = "node_mlx5_0"), group = 1) +
+    geom_point(data = gpu_openmpi_node_tcp, aes(y = Mbytes.sec, color = "node_tcp")) +
+    geom_line(data = gpu_openmpi_node_tcp, aes(y = Mbytes.sec, color = "node_tcp"), group = 1) +
+    
+    scale_colour_manual("", 
+                      breaks = labels_stats,
+                      values = c("node_ucx"="green", "node_ib0"="red", "node_br0"="blue", "node_mlx5_0"="grey",
+                                 "node_tcp"="cyan")) +
+
+    scale_x_discrete(guide = guide_axis(angle = 90)) 
+    
+    
+dev.off()
+
+```
+
+
+```{r eval=FALSE, include=FALSE}
+
+#GPU
+jpeg("img/gpu_openmpi_socket_core.jpeg")
+
+ggplot(data = NULL, aes(x = factor(x))) +
+    
+    ggtitle("gpu node -- by socket, core -- OPENMPI") +
+    xlab("Size message") + 
+    ylab("Mbytes/sec") +
+    
+    geom_point(data = gpu_openmpi_core_ucx, aes(y = Mbytes.sec, color = "core_ucx")) +
+    geom_line(data = gpu_openmpi_core_ucx, aes(y = Mbytes.sec, color = "core_ucx"), group = 1) +
+    geom_point(data = gpu_openmpi_core_tcp, aes(y = Mbytes.sec, color = "core_tcp")) +
+    geom_line(data = gpu_openmpi_core_tcp, aes(y = Mbytes.sec, color = "core_tcp"), group = 1) +
+    geom_point(data = gpu_openmpi_core_vader, aes(y = Mbytes.sec, color = "core_vader")) +
+    geom_line(data = gpu_openmpi_core_vader, aes(y = Mbytes.sec, color = "core_vader"), group = 1) +
+    geom_point(data = gpu_openmpi_socket_ucx, aes(y = Mbytes.sec, color = "socket_ucx")) +
+    geom_line(data = gpu_openmpi_socket_ucx, aes(y = Mbytes.sec, color = "socket_ucx"), group = 1) +
+    geom_point(data = gpu_openmpi_socket_tcp, aes(y = Mbytes.sec, color = "socket_tcp")) +
+    geom_line(data = gpu_openmpi_socket_tcp, aes(y = Mbytes.sec, color = "socket_tcp"), group = 1) +
+    geom_point(data = gpu_openmpi_socket_vader, aes(y = Mbytes.sec, color = "socket_vader")) +
+    geom_line(data = gpu_openmpi_socket_vader, aes(y = Mbytes.sec, color = "socket_vader"), group = 1) +
+    
+    scale_colour_manual("", 
+                      breaks = labels_stats,
+                      values = c("core_ucx"="darkgreen", "core_tcp"="darkred", "core_vader"="yellow",
+                                 "socket_ucx"="orange", "socket_tcp"="pink", "socket_vader"="magenta")) +
+
+    scale_x_discrete(guide = guide_axis(angle = 90)) 
+
+dev.off()
+    
+```
+
+
+```{r eval=FALSE, include=FALSE}
+
+# GPU
+
+jpeg("img/gpu_intelmpi.jpg")
+
+ggplot(data = NULL, aes(x = factor(x))) +
+    
+    ggtitle("GPU core, node, socket -- INTELMPI") +
+    xlab("Size message") + 
+    ylab("Mbytes/sec") +
+    
+    geom_line(data = gpu_intelmpi_def, aes(y = Mbytes.sec, color = "def") , group = 1) +
+    geom_point(data = gpu_intelmpi_def, aes(y = Mbytes.sec, color = "def")) +
+    geom_point(data = gpu_intelmpi_core, aes(y = Mbytes.sec, color = "core")) +
+    geom_line(data = gpu_intelmpi_core, aes(y = Mbytes.sec, color = "core"), group = 1) +
+    geom_point(data = gpu_intelmpi_node, aes(y = Mbytes.sec, color = "node")) +
+    geom_line(data = gpu_intelmpi_node, aes(y = Mbytes.sec, color = "node"), group = 1) +
+    geom_point(data = gpu_intelmpi_socket, aes(y = Mbytes.sec, color = "socket")) +
+    geom_line(data = gpu_intelmpi_socket, aes(y = Mbytes.sec, color = "socket"), group = 1) +
+    
+    scale_colour_manual("", 
+                      breaks = labels_stats_intel,
+                      values = c("def"="green", "core"="red", "node"="blue", "socket"="black")) +
+
+    scale_x_discrete(guide = guide_axis(angle = 90)) 
+    
+dev.off()
+    
+```
+
+
+
+
+
+
+
+```{r eval=FALSE, include=FALSE}
+gpu_mean <- mean(gpu_intelmpi$Mbytes.sec)
+thin_mean <- mean(thin_intelmpi$Mbytes.sec)
+
+jpeg("img/comparison_intelMPI.jpeg")
+
+ggplot(data = NULL, aes(x = factor(x))) +
+    
+    ggtitle("Comparison from GPU and THIN CPU  -- IntelMPI") +
+    xlab("Size message") + 
+    ylab("Mbytes/sec") +
+    
+    geom_line(data = gpu_intelmpi_def, aes(y = Mbytes.sec, color = "gpu") , group = 1) +
+    geom_point(data = gpu_intelmpi_def, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_point(data = gpu_intelmpi_core, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_line(data = gpu_intelmpi_core, aes(y = Mbytes.sec, color = "gpu"), group = 1) +
+    geom_point(data = gpu_intelmpi_node, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_line(data = gpu_intelmpi_node, aes(y = Mbytes.sec, color = "gpu"), group = 1) +
+    geom_point(data = gpu_intelmpi_socket, aes(y = Mbytes.sec, color = "gpu")) +
+    geom_line(data = gpu_intelmpi_socket, aes(y = Mbytes.sec, color = "gpu"), group = 1) +
+    
+    geom_line(data = thin_intelmpi_def, aes(y = Mbytes.sec, color = "thin") , group = 1) +
+    geom_point(data = thin_intelmpi_def, aes(y = Mbytes.sec, color = "thin")) +
+    geom_point(data = thin_intelmpi_core, aes(y = Mbytes.sec, color = "thin")) +
+    geom_line(data = thin_intelmpi_core, aes(y = Mbytes.sec, color = "thin"), group = 1) +
+    geom_point(data = thin_intelmpi_node, aes(y = Mbytes.sec, color = "thin")) +
+    geom_line(data = thin_intelmpi_node, aes(y = Mbytes.sec, color = "thin"), group = 1) +
+    geom_point(data = thin_intelmpi_socket, aes(y = Mbytes.sec, color = "thin")) +
+    geom_line(data = thin_intelmpi_socket, aes(y = Mbytes.sec, color = "thin"), group = 1) +
+    
+    geom_hline(yintercept =  gpu_mean, linetype="dashed", color = "blue") +
+    #geom_text(aes(4,gpu_mean+500), label="GPU mean") +
+    geom_hline(yintercept =  thin_mean, linetype="dashed", color = "orange") +
+    geom_text(aes(2,thin_mean+700), label="Mean") +
+    
+    
+    
+    scale_colour_manual("", 
+                      breaks = c("thin", "gpu"),
+                      values = c("thin" = "orange","gpu" = "blue")
+                      ) +
+
+    scale_x_discrete(guide = guide_axis(angle = 90)) 
+    
+dev.off()
+    
+```
+
+
+### Model fitting
+
+Finally, I compered the resulting estimated latency and bandwidth parameters against the one provided by a least-square fitting model. I used the model provied in class that described the total transfer time of a message: $$t_{comm} = \lambda + \frac{(Size\ of\ message)}{b_{network}} $$
+
+To fit the model, first I divided my data in two parts and I calculated the linear model for the first half and another linear model for the second half. Then I take the slope from the first model, that is similar to the latency and then I take the angular coefficient from the second model, that is similar to the $1/bandwidth$. After that, I used the formula above to estimate my latency and that I divided the size message with this latency estimation. 
+
+
+
+```{r echo=FALSE}
+
+linear_model <- function(datas){
+    
+    node = 12
+    bytes <- as.integer(datas$Bytes)
+    
+    model_b1 <- lm(t_usec~bytes[1:node], data =  datas[1:node,])
+    model_b2 <- lm(t_usec~bytes[(node+1):24] , data =  datas[(node+1):24,])
+    
+    t_estimate1 <- model_b1$coefficients[1] #This is the latency, i take the quota
+    b_estimate2 <- model_b2$coefficients[2] #this is the bandwidth, I take the coefficente angolare
+    
+    
+    datas$est_lat <- t_estimate1 + bytes * b_estimate2
+    datas$est_band <- bytes/datas$est_lat
+
+    return(datas)
+}
+
+
+
+```
+
+
+
+```{r eval=FALSE, include=FALSE}
+
+n_rows = 24 * 10
+sep = as.integer(seq(0, nrow(thin_openmpi), by = n_rows))
+i = 0
+
+pdf("Model_thin_OpenMPI.pdf") 
+
+for (i in 1:11) {
+    if(i == 1){
+        model1 <- linear_model(max_dataset( thin_openmpi[sep[i]:n_rows,]))
+    }else{
+        model1 <- linear_model(max_dataset(thin_openmpi[sep[i]+1:n_rows,]))
+    }
+    
+    plot(
+        ggplot(data = NULL, mapping = aes(x = factor(x))) +
+            xlab("Size message") + 
+            ylab("Mbytes/sec") +
+        ggtitle(labels_stats[i]) +
+        geom_point(data = model1, aes(y = Mbytes.sec, color="Real data")) + 
+        geom_line(data = model1, aes(y = Mbytes.sec, color="Real data"), group = 1) +
+        geom_point(data = model1, aes(y = est_band, color="Model")) +
+        geom_line(data = model1, aes(y = est_band, color="Model"), group = 1) +
+            scale_color_manual("",
+                               breaks = c("Real data", "Model"),
+                               values = c("Real data" = "black", "Model" = "blue")
+            ) +
+            scale_x_discrete(guide = guide_axis(angle = 90)) 
+                               
+    )
+    
+    write.csv2(model1, paste("/home/thomas/Scrivania/PRIMO ANNO/HPC/Assignment1/Sec1/section1/csv_out/", labels_stats[i], ".csv", sep = ""))
+    
+}
+
+dev.off()
+
+```
+
+```{r eval=FALSE, include=FALSE}
+
+n_rows = 24 * 10
+sep = as.integer(seq(0, nrow(gpu_openmpi), by = n_rows))
+i = 0
+
+pdf("model_gpu_OpenMPI.pdf")
+
+for (i in 1:11) {
+    if(i == 1){
+        model1 <- linear_model(max_dataset( gpu_openmpi[sep[i]:n_rows,]))
+    }else{
+        model1 <- linear_model(max_dataset(gpu_openmpi[sep[i]+1:n_rows,]))
+    }
+    
+    plot(
+        ggplot(data = NULL, mapping = aes(x = factor(x))) +
+            xlab("Size message") + 
+            ylab("Mbytes/sec") +
+        ggtitle(labels_stats[i]) +
+        geom_point(data = model1, aes(y = Mbytes.sec, color="Real data")) + 
+        geom_line(data = model1, aes(y = Mbytes.sec, color="Real data"), group = 1) +
+        geom_point(data = model1, aes(y = est_band, color="Model")) +
+        geom_line(data = model1, aes(y = est_band, color="Model"), group = 1) +
+            scale_color_manual("",
+                               breaks = c("Real data", "Model"),
+                               values = c("Real data" = "black", "Model" = "blue")
+            ) +
+            scale_x_discrete(guide = guide_axis(angle = 90)) 
+                               
+    )
+    
+    write.csv2(model1, paste("/home/thomas/Scrivania/PRIMO ANNO/HPC/Assignment1/Sec1/section1/csv_out/gpu_", labels_stats[i], ".csv", sep = ""))
+    
+}
+
+dev.off()
+
+```
+
+```{r eval=FALSE, include=FALSE}
+
+n_rows = 24 * 10
+sep = as.integer(seq(0, nrow(thin_intelmpi), by = n_rows))
+i = 0
+
+pdf("model_thin_IntelMPI.pdf")
+
+for (i in 1:4) {
+    if(i == 1){
+        model1 <- linear_model(max_dataset( thin_intelmpi[sep[i]:n_rows,]))
+    }else{
+        model1 <- linear_model(max_dataset(thin_intelmpi[sep[i]+1:n_rows,]))
+    }
+    
+    plot(
+        ggplot(data = NULL, mapping = aes(x = factor(x))) +
+            xlab("Size message") + 
+            ylab("Mbytes/sec") +
+        ggtitle(labels_stats_intel[i]) +
+        geom_point(data = model1, aes(y = Mbytes.sec, color="estimate")) + 
+        geom_line(data = model1, aes(y = Mbytes.sec, color="estimate"), group = 1) +
+        geom_point(data = model1, aes(y = est_band, color="model")) +
+        geom_line(data = model1, aes(y = est_band, color="model"), group = 1) +
+            scale_color_manual("",
+                               breaks = c("estimate", "model"),
+                               values = c("estimate" = "black", "model" = "blue")
+            ) +
+            scale_x_discrete(guide = guide_axis(angle = 90)) 
+                               
+    )
+    
+    write.csv2(model1, paste("/home/thomas/Scrivania/PRIMO ANNO/HPC/Assignment1/Sec1/section1/csv_out/intel_thin_", labels_stats_intel[i], ".csv", sep = ""))
+    
+}
+
+dev.off()
+
+```
+
+
+
+```{r eval=FALSE, include=FALSE}
+
+n_rows = 24 * 10
+sep = as.integer(seq(0, nrow(gpu_intelmpi), by = n_rows))
+i = 0
+
+pdf("model_gpu_IntelMPI.pdf")
+
+for (i in 1:4) {
+    if(i == 1){
+        model1 <- linear_model(max_dataset( gpu_intelmpi[sep[i]:n_rows,]))
+    }else{
+        model1 <- linear_model(max_dataset(gpu_intelmpi[sep[i]+1:n_rows,]))
+    }
+    
+    plot(
+        ggplot(data = NULL, mapping = aes(x = factor(x))) +
+            xlab("Size message") + 
+            ylab("Mbytes/sec") +
+        ggtitle(labels_stats_intel[i]) +
+        geom_point(data = model1, aes(y = Mbytes.sec, color="estimate")) + 
+        geom_line(data = model1, aes(y = Mbytes.sec, color="estimate"), group = 1) +
+        geom_point(data = model1, aes(y = est_band, color="model")) +
+        geom_line(data = model1, aes(y = est_band, color="model"), group = 1) +
+            scale_color_manual("",
+                               breaks = c("estimate", "model"),
+                               values = c("estimate" = "black", "model" = "blue")
+            ) +
+            scale_x_discrete(guide = guide_axis(angle = 90)) 
+                               
+    )
+    
+    write.csv2(model1, paste("/home/thomas/Scrivania/PRIMO ANNO/HPC/Assignment1/Sec1/section1/csv_out/intel_gpu_", labels_stats_intel[i], ".csv", sep = ""))
+    
+}
+
+dev.off()
+
+```
+
+
+
+
+
+
+
+```{r eval=FALSE, include=FALSE}
+# Time (I thinck is not usefull)
+ggplot(data = NULL, aes(x = factor(x))) +
+    
+    ggtitle("THIN node -- by node, Time") +
+    xlab("Size message") + 
+    ylab("Time [usec]") +
+    
+    #ucx and mlx5_0 are the sameeeeee --> REMOVE
+    geom_line(data = thin_openmpi_node_ucx, aes(y = t_usec, color = "node_ucx") , group = 1) +
+    geom_point(data = thin_openmpi_node_ucx, aes(y = t_usec, color = "node_ucx")) +
+    geom_point(data = thin_openmpi_node_ib0, aes(y = t_usec, color = "node_ib0")) +
+    geom_line(data = thin_openmpi_node_ib0, aes(y = t_usec, color = "node_ib0"), group = 1) +
+    geom_point(data = thin_openmpi_node_br0, aes(y = t_usec, color = "node_br0")) +
+    geom_line(data = thin_openmpi_node_br0, aes(y = t_usec, color = "node_br0"), group = 1) +
+    geom_point(data = thin_openmpi_node_mlx5_0, aes(y = t_usec, color = "node_mlx5_0")) +
+    geom_line(data = thin_openmpi_node_mlx5_0, aes(y = t_usec, color = "node_mlx5_0"), group = 1) +
+    geom_point(data = thin_openmpi_node_tcp, aes(y = t_usec, color = "node_tcp")) +
+    geom_line(data = thin_openmpi_node_tcp, aes(y = t_usec, color = "node_tcp"), group = 1) +
+    
+    scale_colour_manual("", 
+                      breaks = labels_stats,
+                      values = c("node_ucx"="green", "node_ib0"="red", "node_br0"="blue", "node_mlx5_0"="grey",
+                                 "node_tcp"="cyan")) +
+
+    scale_x_discrete(guide = guide_axis(angle = 90)) 
+
+
+```
+
+```{r eval=FALSE, include=FALSE}
+
+#TIME
+
+
+ggplot(data = NULL, aes(x = factor(x))) +
+    
+    ggtitle("THIN node -- by node, Time") +
+    xlab("Size message") + 
+    ylab("Time [usec]") +
+    
+    geom_point(data = thin_openmpi_core_ucx, aes(y = t_usec, color = "core_ucx")) +
+    geom_line(data = thin_openmpi_core_ucx, aes(y = t_usec, color = "core_ucx"), group = 1) +
+    geom_point(data = thin_openmpi_core_tcp, aes(y = t_usec, color = "core_tcp")) +
+    geom_line(data = thin_openmpi_core_tcp, aes(y = t_usec, color = "core_tcp"), group = 1) +
+    geom_point(data = thin_openmpi_core_vader, aes(y = t_usec, color = "core_vader")) +
+    geom_line(data = thin_openmpi_core_vader, aes(y = t_usec, color = "core_vader"), group = 1) +
+    geom_point(data = thin_openmpi_socket_ucx, aes(y = t_usec, color = "socket_ucx")) +
+    geom_line(data = thin_openmpi_socket_ucx, aes(y = t_usec, color = "socket_ucx"), group = 1) +
+    geom_point(data = thin_openmpi_socket_tcp, aes(y = t_usec, color = "socket_tcp")) +
+    geom_line(data = thin_openmpi_socket_tcp, aes(y = t_usec, color = "socket_tcp"), group = 1) +
+    geom_point(data = thin_openmpi_socket_vader, aes(y = t_usec, color = "socket_vader")) +
+    geom_line(data = thin_openmpi_socket_vader, aes(y = t_usec, color = "socket_vader"), group = 1) +
+    
+    scale_colour_manual("", 
+                      breaks = labels_stats,
+                      values = c("core_ucx"="darkgreen", "core_tcp"="darkred", "core_vader"="yellow",
+                                 "socket_ucx"="orange", "socket_tcp"="pink", "socket_vader"="magenta"))  +
+
+    scale_x_discrete(guide = guide_axis(angle = 90)) 
+
+```
+
+```{r echo=FALSE}
+
+
+
+```
+
+```{r echo=FALSE}
+
+
+
+```
+
+
+
+
+
+```{r eval=FALSE, include=FALSE}
+
+#Chart gpu node LOG
+
+ggplot(data = NULL, aes(x = factor(x))) +
+    
+    ggtitle("gpu node -- by node -- LOG") +
+    xlab("Size message") + 
+    ylab("Mbytes/sec") +
+    
+    
+    geom_line(data = gpu_openmpi_node_ucx, aes(y = log(Mbytes.sec), color = "node_ucx") , group = 1) +
+    geom_point(data = gpu_openmpi_node_ucx, aes(y = log(Mbytes.sec), color = "node_ucx")) +
+    geom_point(data = gpu_openmpi_node_ib0, aes(y = log(Mbytes.sec), color = "node_ib0")) +
+    geom_line(data = gpu_openmpi_node_ib0, aes(y = log(Mbytes.sec), color = "node_ib0"), group = 1) +
+    geom_point(data = gpu_openmpi_node_br0, aes(y = log(Mbytes.sec), color = "node_br0")) +
+    geom_line(data = gpu_openmpi_node_br0, aes(y = log(Mbytes.sec), color = "node_br0"), group = 1) +
+    geom_point(data = gpu_openmpi_node_mlx5_0, aes(y = log(Mbytes.sec), color = "node_mlx5_0")) +
+    geom_line(data = gpu_openmpi_node_mlx5_0, aes(y = log(Mbytes.sec), color = "node_mlx5_0"), group = 1) +
+    geom_point(data = gpu_openmpi_node_tcp, aes(y = log(Mbytes.sec), color = "node_tcp")) +
+    geom_line(data = gpu_openmpi_node_tcp, aes(y = log(Mbytes.sec), color = "node_tcp"), group = 1) +
+    
+    scale_colour_manual("", 
+                      breaks = labels_stats,
+                      values = c("node_ucx"="green", "node_ib0"="red", "node_br0"="blue", "node_mlx5_0"="grey",
+                                 "node_tcp"="cyan")) +
+
+    scale_x_discrete(guide = guide_axis(angle = 90)) 
+    
+    
+
+
+```
+
+
+```{r eval=FALSE, include=FALSE}
+
+#LOG
+
+ggplot(data = NULL, aes(x = factor(x))) +
+    
+    ggtitle("THIN node -- by node -- Time -- LOG") +
+    xlab("Size message") + 
+    ylab("Time [usec]") +
+    
+    geom_line(data = thin_openmpi_node_ucx, aes(y = log(t_usec), color = "node_ucx") , group = 1) +
+    geom_point(data = thin_openmpi_node_ucx, aes(y =  log(t_usec), color = "node_ucx")) +
+    geom_point(data = thin_openmpi_node_ib0, aes(y =  log(t_usec), color = "node_ib0")) +
+    geom_line(data = thin_openmpi_node_ib0, aes(y =  log(t_usec), color = "node_ib0"), group = 1) +
+    geom_point(data = thin_openmpi_node_br0, aes(y =  log(t_usec), color = "node_br0")) +
+    geom_line(data = thin_openmpi_node_br0, aes(y =  log(t_usec), color = "node_br0"), group = 1) +
+    geom_point(data = thin_openmpi_node_mlx5_0, aes(y =  log(t_usec), color = "node_mlx5_0")) +
+    geom_line(data = thin_openmpi_node_mlx5_0, aes(y =  log(t_usec), color = "node_mlx5_0"), group = 1) +
+    geom_point(data = thin_openmpi_node_tcp, aes(y =  log(t_usec), color = "node_tcp")) +
+    geom_line(data = thin_openmpi_node_tcp, aes(y =  log(t_usec), color = "node_tcp"), group = 1) +
+    
+    scale_colour_manual("", 
+                      breaks = labels_stats,
+                      values = c("node_ucx"="green", "node_ib0"="red", "node_br0"="blue", "node_mlx5_0"="grey",
+                                 "node_tcp"="cyan")) +
+
+    scale_x_discrete(guide = guide_axis(angle = 90)) 
+
+
+```

@@ -1,0 +1,85 @@
+---
+title: "Matrix"
+author: "Verardo Thomas"
+date: "29/12/2021"
+output: pdf_document
+---
+
+##Section1 (Matrix)
+
+```{r include=FALSE}
+library(tidyverse)
+library(ggplot2)
+
+mean_data <- function(matrix){
+    n = 24
+    rep = 20
+    mean_dataframe <- data.frame(matrix(nrow=0, ncol = 2))
+    colnames(mean_dataframe) <- c("n_process", "time")
+    seq_row = seq(0, n*rep, by=rep)
+    for (i in 1:n){
+        mean = 0
+        for (j in 0:(rep-1)){
+            row = seq_row[i]+j+1
+            mean = mean + matrix[row, 2]
+        }
+        mean = mean / rep
+        mean_dataframe <- mean_dataframe %>%
+            add_row(n_process = matrix[(row-1),1], time = mean)
+    }
+    
+    return(mean_dataframe)
+}
+
+
+```
+
+
+```{r include=FALSE}
+data_matrix <- data.frame(read.csv("data_matrix.csv",col.names = c("n_process", "time"), header = F))
+
+dif_shape <- 20*24
+seq_shape <- seq(1, dif_shape*4, by=dif_shape)
+
+data_2400 <- mean_data(data_matrix[seq_shape[1]:(seq_shape[2]-1),])
+data_1200 <- mean_data(data_matrix[seq_shape[2]:(seq_shape[3]-1),])
+data_800 <- mean_data(data_matrix[seq_shape[3]:(seq_shape[4]-1),])
+
+
+```
+
+
+
+```{r include=FALSE}
+
+ggplot(data=data_2400, mapping = aes(x = n_process, y=time)) +
+    
+    ggtitle("Different matrix shapes") +
+    xlab("N of process") +
+    ylab("Time to process [s]") +
+    
+    geom_point(aes(color = "2400 matrix")) +
+    geom_line(data = data_2400, aes(color = "2400 matrix")) +
+    geom_point(data=data_1200, aes(color = "1200 matrix")) +
+    geom_line(data=data_1200, aes(color = "1200 matrix")) +
+    geom_point(data=data_800, aes(color = "800 matrix")) +
+    geom_line(data=data_800, aes(color = "800 matrix")) +
+    
+    scale_colour_manual("", 
+                      breaks = c("2400 matrix", "1200 matrix", "800 matrix"),
+                      values = c("2400 matrix" = "red","1200 matrix" = "orange", "800 matrix" = "yellow")
+                      ) 
+
+```
+
+```{r include=FALSE}
+
+```
+
+```{r include=FALSE}
+
+```
+
+```{r include=FALSE}
+
+```

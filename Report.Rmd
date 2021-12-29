@@ -1,0 +1,20 @@
+---
+title: "Report Assignment 1"
+author: "Verardo Thomas"
+date: "28/12/2021"
+output: pdf_document
+---
+
+
+```{r child = 'Sec1/section1/ring_chart.Rmd'}
+```
+
+# ```{r child = 'Sec1/section1/matrix/matrix.Rmd'}
+# ```
+
+
+```{r child = 'Sec2/Ass2_chart.Rmd'}
+```
+
+```{r child = 'Sec3/sec3_jacobi_report.Rmd'}
+```

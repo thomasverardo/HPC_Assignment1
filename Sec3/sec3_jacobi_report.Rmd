@@ -1,0 +1,109 @@
+---
+title: "Sec3_jacobi"
+author: "Verardo Thomas"
+date: "24/12/2021"
+output: pdf_document
+---
+
+#Jacobi solver
+
+In the section 3, we have to compile and run the Jacobi program and test the performance in the theoretical and practical way. To test the first one and so to predict the Jacobi model performance, it's used this model: 
+$$ P(L,N) = \frac{L^3*N}{T_s + T_c} [MLUP/s] $$
+With L as total time on a single process, N as the number of process, Ts as a time that is constant and it's estimated, Tc as the communication time per second, that is:
+$$ Tc(L,N) = \frac{c(L,N)}{B} + 4kT_l [seconds]$$
+B is the bandwidth, $T_l$ is the latency ($\lambda$) and c(L,N) is the message size:
+$$ c(L,N) = L^2*k*2*2*8 [byte] $$
+L^2 * k must be multiplied for 8 because the message is a double, for 2 because we are in a bidirectional case and another time for 2 for the positive and negative direction.
+
+## Model prediction
+
+There are several domain decomposition that can be done, but, for the purposes of the exercise and the performance, it's for little use to calculate all the decomposition performance, therefore only those that are studied best have been calculated.
+
+All models are calculated with L = 700.
+
+
+
+```{r echo=FALSE}
+library(knitr)
+#library(kableExtra)
+#library(dplyr)
+
+col_names <- c("Ts", "N_process", "Nx", "Ny", "Nz", "k", "C", "Tc", "Model_perf", "Perf_ratio", "Real_perf", "Elapsed_time", "L", "lat", "B")
+
+thin_node_model <- data.frame(read.csv("Data/data/thin_node_model.csv", col.names = col_names))
+thin_socket_model <- data.frame(read.csv("Data/data/thin_socket_model.csv", col.names = col_names))
+thin_core_model <- data.frame(read.csv("Data/data/thin_core_model.csv", col.names = col_names))
+gpu_socket_model <- data.frame(read.csv("Data/data/gpu_soc_model.csv", col.names = col_names))
+gpu_core_model <- data.frame(read.csv("Data/data/gpu_core_model.csv", col.names = col_names))
+
+which_columns <- c(2:9,11,12,10)
+
+
+# thin_node_model[,which_columns] %>%
+#     kbl() %>%
+#     kable_minimal()
+
+knitr::kable(thin_node_model[,which_columns], caption = "Model thin, mapping by node ",
+             align = "c",
+             digits = c(rep(3,10), 6),
+             label = "test")
+
+
+
+
+```
+
+
+```{r echo=FALSE}
+knitr::kable(thin_socket_model[,which_columns], caption = "Model thin, mapping by socket", align = "c", digits = c(rep(3,10), 6))
+
+```
+
+```{r echo=FALSE}
+knitr::kable(thin_core_model[,which_columns], caption = "Model thin, mapping by core", align = "c", digits = c(rep(3,10), 6))
+
+```
+
+
+```{r eval=FALSE, include=FALSE}
+
+mean(thin_node_model$Perf_ratio)
+mean(thin_socket_model$Perf_ratio)
+mean(thin_core_model$Perf_ratio)
+
+```
+Data are calculated with the following parameters:
+
+* \ By node: $\lambda$ = 1.02 [usec], B = 11946 [MB/s]
+* \ By socket: $\lambda$ = 0.49 [usec], B = 5530 [MB/s]
+* \ By core: $\lambda$ = 0.22 [usec], B = 6372 [MB/s]
+
+
+The model performed seems accurate, but you can notice that the estimated performance is better with mapping by node and socket and worse with core. In the expected theoretical model this data should be different, that us the mapping by core better than node.
+
+
+
+
+```{r echo=FALSE}
+knitr::kable(gpu_socket_model[,which_columns], caption = "Model gpu, mapping by socket", align = "c", digits = c(rep(3,10), 6))
+
+```
+
+```{r echo=FALSE}
+knitr::kable(gpu_core_model[,which_columns], caption = "Model gpu, mapping by core", align = "c", digits = c(rep(3,10), 6))
+```
+
+```{r eval=FALSE, include=FALSE}
+mean(gpu_socket_model$Perf_ratio)
+mean(gpu_core_model$Perf_ratio)
+```
+
+Unlike the CPU, in the GPU performance we can see that the estimated model performance of the mapping by core is sligthy better than the mapping by socket. 
+
+```{r include=FALSE}
+
+```
+
+```{r include=FALSE}
+
+```
