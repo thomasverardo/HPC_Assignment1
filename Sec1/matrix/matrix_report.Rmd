@@ -7,13 +7,15 @@ output: pdf_document
 
 ##Section1 (Matrix)
 
+The matrix is initialized with random number and, after building the topology, that is always (s, 1, 1) as $s$ the numbers of processes, the matrix is first divided and then sent to all the processes. So, each process computed a part of the matrix, that is exactly the shape of the matrix ($x*y*z$) divided by the number of processes.
+
 ```{r include=FALSE}
 library(tidyverse)
 library(ggplot2)
 
 mean_data <- function(matrix){
     n = 24
-    rep = 20
+    rep = 10
     mean_dataframe <- data.frame(matrix(nrow=0, ncol = 2))
     colnames(mean_dataframe) <- c("n_process", "time")
     seq_row = seq(0, n*rep, by=rep)
@@ -38,13 +40,20 @@ mean_data <- function(matrix){
 ```{r include=FALSE}
 data_matrix <- data.frame(read.csv("data_matrix.csv",col.names = c("n_process", "time"), header = F))
 
-dif_shape <- 20*24
+dif_shape <- 10*24
 seq_shape <- seq(1, dif_shape*4, by=dif_shape)
 
 data_2400 <- mean_data(data_matrix[seq_shape[1]:(seq_shape[2]-1),])
 data_1200 <- mean_data(data_matrix[seq_shape[2]:(seq_shape[3]-1),])
 data_800 <- mean_data(data_matrix[seq_shape[3]:(seq_shape[4]-1),])
 
+
+
+data_matrix_core <- data.frame(read.csv("data_matrix_core.csv",col.names = c("n_process", "time"), header = F))
+data_matrix_socket <- data.frame(read.csv("data_matrix_socket.csv",col.names = c("n_process", "time"), header = F))
+
+data_core <- mean_data(data_matrix_core[1:(dif_shape),])
+data_socket <- mean_data(data_matrix_socket[1:(dif_shape),])
 
 ```
 
@@ -73,6 +82,24 @@ ggplot(data=data_2400, mapping = aes(x = n_process, y=time)) +
 ```
 
 ```{r include=FALSE}
+
+ggplot(data=data_1200, mapping = aes(x = n_process, y=time)) +
+    
+    ggtitle("Different mapping") +
+    xlab("N of process") +
+    ylab("Time to process [s]") +
+    
+    geom_point(aes(color = "1200 matrix")) +
+    geom_line(aes(color = "1200 matrix")) +
+    geom_point(data=data_core, aes(color = "core")) +
+    geom_line(data=data_core, aes(color = "core")) +
+    geom_point(data=data_socket, aes(color = "socket")) +
+    geom_line(data=data_socket, aes(color = "socket")) +
+    
+    scale_colour_manual("", 
+                      breaks = c("1200 matrix", "core", "socket"),
+                      values = c("1200 matrix" = "blue","core" = "purple", "socket" = "cyan")
+                      ) 
 
 ```
 

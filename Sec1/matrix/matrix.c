@@ -41,10 +41,10 @@ int main(int argc, char **argv){
     
     
     
-    ndims = 3; //3D
+    ndims = 2; //3D
     
-    int dim[3] = {size, 1, 1}; //x * y * z
-    int periods[3] = {1, 1, 1};
+    int dim[3] = {size, 1}; //x * y * z
+    int periods[3] = {1, 1};
     
     double recv_mat1[split_dim], recv_mat2[split_dim], sum_mat[split_dim];
     double mat1[x][y][z], mat2[x][y][z], final_mat[x][y][z];
