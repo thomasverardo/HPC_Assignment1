@@ -5,7 +5,7 @@ date: "24/12/2021"
 output: pdf_document
 ---
 
-#Jacobi solver
+## SECTION 3
 
 In the section 3, we have to compile and run the Jacobi program and test the performance in the theoretical and practical way. To test the first one and so to predict the Jacobi model performance, it's used this model: 
 $$ P(L,N) = \frac{L^3*N}{T_s + T_c} [MLUP/s] $$
@@ -15,7 +15,7 @@ B is the bandwidth, $T_l$ is the latency ($\lambda$) and c(L,N) is the message s
 $$ c(L,N) = L^2*k*2*2*8 [byte] $$
 L^2 * k must be multiplied for 8 because the message is a double, for 2 because we are in a bidirectional case and another time for 2 for the positive and negative direction.
 
-## Model prediction
+### Model prediction
 
 There are several domain decomposition that can be done, but, for the purposes of the exercise and the performance, it's for little use to calculate all the decomposition performance, therefore only those that are studied best have been calculated.
 

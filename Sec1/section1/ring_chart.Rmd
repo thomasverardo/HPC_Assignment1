@@ -5,9 +5,11 @@ date: "18/12/2021"
 output: pdf_document
 ---
 
-## Section 1 (Ring)
+## SECTION 1 (Ring)
 
-The first section was focused on the implementation on a ring throw processor code. Once implemented with the OpenMPI library, I runned the test throw different processor of the THIN node of ORFEO. The maximum number of processor in one thin node is 24 processor. I have taken notes of the runtime of all sent and received messagges. To compare different number of total processor, I did the sum and the average of the time to complete the ring execution of one processor. Then, for each different number of processor, I repeated 100 times the execution of the ring and I computed the mean. 
+The first section was focused on the implementation on a ring throw processor code. The ring is implemented with a 1D virtual topology and using non-blocking communication.
+
+Once implemented with the OpenMPI library, I runned the test throw different processor of the THIN node of ORFEO. The maximum number of processor in one thin node is 24 processor. I have taken notes of the runtime of all sent and received messagges. To compare different number of total processor, I did the sum and the average of the time to complete the ring execution of one processor. Then, for each different number of processor, I repeated 100 times the execution of the ring and I computed the mean. 
 
 
 ```{r setup, include=FALSE}
@@ -183,6 +185,53 @@ for (i in 1:23){
 }
 
 
+
+# 
+# #thin socket 2 NEW (with --mca btl ^openib)
+# n = 100
+# 
+# temp_list <- list()
+# temp_list_mean <- list()
+# for (i in 1:n){
+#     file_name = paste("data/test/data_thin_socket",i,".out", sep="")
+#     temp_data <- data.frame(read.csv(file_name, col.names = c("Processor", "Speed"), header = F))
+#     temp_data$Speed <- as.double(temp_data$Speed)
+#     temp_data_mean1 <- sum_data_processor(temp_data)
+#     temp_data_mean1_mean <- mean_data_processor(temp_data)
+#     temp_list <- append(temp_list, temp_data_mean1)
+#     temp_list_mean <- append(temp_list_mean, temp_data_mean1_mean)
+# }
+# 
+# 
+# ring_thin_socket_mean2 <- data.frame(matrix(ncol = 2, nrow = 0))
+# colnames(ring_thin_socket_mean2) <- c("Processor", "Speed")
+# ring_thin_socket_mean_mean2 <- data.frame(matrix(ncol = 2, nrow = 0))
+# colnames(ring_thin_socket_mean_mean2) <- c("Processor", "Speed")
+# for (i in 1:23){
+#     list_speed <- list()
+#     list_speed_mean <- list()
+#     for (j in seq_for_speed){
+#         list_speed <- c(list_speed, as.double(temp_list[[j]][i]))
+#         list_speed_mean <- c(list_speed_mean, as.double(temp_list_mean[[j]][i]))
+#     }
+#     ring_thin_socket_mean2 <- ring_thin_socket_mean2 %>%
+#         add_row(Processor = temp_data_mean1$Processor[i], 
+#                 Speed = mean( sapply(list_speed, mean) #sapply to convert from a n list at 1 list with n numbers
+#          )
+#         )
+#     ring_thin_socket_mean_mean2 <- ring_thin_socket_mean_mean2 %>%
+#         add_row(Processor = temp_data_mean1_mean$Processor[i], 
+#                 Speed = mean( sapply(list_speed_mean, mean) #sapply to convert from a n list at 1 list with n numbers
+#          )
+#         )
+# }
+# 
+
+
+
+
+
+
 #thin core
 n = 100
 
@@ -311,8 +360,11 @@ ggplot( data = ring_thin_mean_mean, aes(x = Processor, y = Speed/1000)) +
 
 ```
 
-```{r include=FALSE}
+```{r eval=FALSE, include=FALSE}
 
+ggplot(data = ring_thin_socket_mean, aes(x = Processor, y=Speed)) +
+    geom_line() +
+    geom_line(data=ring_thin_socket_mean2, color="red")
 ```
 
 ```{r include=FALSE}
