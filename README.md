@@ -2,38 +2,9 @@
 
 ### Due date : 23.59.30.12.2021
 
-***version 1.0***
 
-#### Submission policy: creating a directory on /fast/dssc/username/2021Assignment01 on ORFEO and put all the files required there.
-
-hints:
-
-`` mkdir /fast/dssc/my_username/2021Assignement01`` 
-
-### COMPUTATIONAL RESOURCES:
-
-Please use the dssc queue and be careful to study performances and scalability using the same kind of nodes.
-
-### Structure of directory: 
-
-````
-report.pdf 
-section1/ring.[c][cc][py][f90]
-section1/sum3Dmatrix.[c][cc][py][f90]
-section1/README
-section2/cvs-files
-section3/cvs-files
-````
-
-where: 
-
-- Report.pdf  will contain a detailed report of all the sections in this documents.
-
-- section1/README should explain which software stack we should use to compile the codes and run all the programs you provided us. 
-  Providing well-done Makefiles is appreciated. 
- 
-- all the *.csv file are commma separated values files all structured as explained below
-
+In this repository there is the work for the first assignment of the HPC course at the University of Trieste.
+The idea of this repository is to study processes interaction and do some benchmark on ORFEO data center (https://orfeo-documentation.readthedocs.io/en/latest/).  
 
 	    
 ## Section  1: MPI programming 
