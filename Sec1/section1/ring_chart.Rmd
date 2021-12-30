@@ -271,12 +271,17 @@ for (i in 1:23){
         )
 }
 
+
+# #MODEL
+# bandwidth = 0.6
+# model_time = ring_thin_core_mean$Processor*((2*4*10^(-6))/bandwidth * )
+
 ```
 
 ### Plot results
 
-I produce the plot in one thin node between different processor, to compare the differance mapping: defualt, node, socket or core.
-In the first plot it's possible to see that the default method is equal to the node method.
+I produce the plot in one thin node between different processor, to compare the difference mapping: defualt, node, socket or core.
+In the first plot it's possible to see that the default method is equal to the node method. Apart for some outliers, the time to compute increase linearly with increasing number of processes. 
 
 ```{r echo=FALSE}
 

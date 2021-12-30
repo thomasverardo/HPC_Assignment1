@@ -61,15 +61,27 @@ data_socket <- mean_data(data_matrix_socket[1:(dif_shape),])
 #always modeled with 1200x200x100
 data_matrix_1D <- data.frame(read.csv("data_matrix_1D.csv",col.names = c("n_process", "time"), header = F))
 data_matrix_2D <- data.frame(read.csv("data_matrix_2D.csv",col.names = c("n_process", "time"), header = F))
+data_matrix_notopology <- data.frame(read.csv("data_matrix_notopology.csv",col.names = c("n_process", "time"), header = F))
 
 data_1D <- mean_data(data_matrix_1D[1:(dif_shape),])
 data_2D <- mean_data(data_matrix_2D[1:(dif_shape),])
+data_notopology <- mean_data(data_matrix_notopology[1:(dif_shape),])
+
+
+# #MODEL
+# latency = 1.213
+# bandwidth = 105.598
+# 
+# model = (192/bandwidth + latency)
 
 ```
 
-I produce two different plots: one that represent the time to compute the matrix-matrix sum for different shapes and one with the same shape but with different mapping.
+I produce different plots: the first one is not very useful and it represent the different shapes of the matrix in relation to the number of processes (the plot is in thi [LINK])
+one that represent the time to compute the matrix-matrix sum for different shapes and one with the same shape but with different mapping.
 
-```{r echo=FALSE}
+```{r eval=FALSE, include=FALSE}
+
+jpeg("img/different_shapes.jpeg")
 
 ggplot(data=data_2400, mapping = aes(x = n_process, y=time)) +
     
@@ -89,6 +101,7 @@ ggplot(data=data_2400, mapping = aes(x = n_process, y=time)) +
                       values = c("2400 matrix" = "red","1200 matrix" = "orange", "800 matrix" = "yellow")
                       ) 
 
+dev.off()
 ```
 
 In this graph, we can see that if we use different shapes, that are 2400x100x100 (red), 1200x200x100 (orange) and 800x300x100 (yellow), the time to sum the matrix is always the same, even using multiple processes. We note that for the first 15 processes executed in parallel, the time is quiet constant, but after 16 processes in parallel, the time to compute decrease drastically and remains constant until the end.
@@ -114,8 +127,7 @@ ggplot(data=data_1200, mapping = aes(x = n_process, y=time)) +
                       ) 
 
 ```
-
-
+Here, there is the plot of the same matrix (1200x200x100), with the same topology (3D) but with different mapping and the result doesn't change. In fact, the time to process is always similar.  
 
 
 ```{r echo=FALSE}
@@ -132,14 +144,17 @@ ggplot(data=data_1200, mapping = aes(x = n_process, y=time)) +
     geom_line(data=data_2D, aes(color = "2D")) +
     geom_point(data=data_1D, aes(color = "1D")) +
     geom_line(data=data_1D, aes(color = "1D")) +
+    geom_point(data=data_notopology, aes(color = "no")) +
+    geom_line(data=data_notopology, aes(color = "no")) +
     
     scale_colour_manual("", 
-                      breaks = c("3D", "2D", "1D"),
-                      values = c("3D" = "blue","2D" = "purple", "1D" = "red")
+                      breaks = c("3D", "2D", "1D", "no topology"),
+                      values = c("3D" = "blue","2D" = "purple", "1D" = "red", "no topology" = "grey")
                       ) 
 
 ```
 
+Lastly, I computed the time to do the matrix-matrix sum with the same mapping and the same shape (1200x200x100) but with different topology. The 2D and 1D topology are the same, even because the matrix is a 3D array and the two topology are built with Nx, that is the number of processes ($[size]$ for 1D and $[size, 1]$ for 2D, as size the number of processes). We can see also that built a topology is useless because it has the same performance.
 
 ```{r eval=FALSE, include=FALSE}
 
