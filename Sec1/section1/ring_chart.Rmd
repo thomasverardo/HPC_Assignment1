@@ -283,6 +283,9 @@ for (i in 1:23){
 I produce the plot in one thin node between different processor, to compare the difference mapping: defualt, node, socket or core.
 In the first plot it's possible to see that the default method is equal to the node method. Apart for some outliers, the time to compute increase linearly with increasing number of processes. 
 
+In the second plot, you can see the difference from using a difference number of processes, but instead to do the sum over the different time to complete a ring for each process, the processes are averaged. Then, I create a model to better representing the data.
+You can see that the line representing the mapping by core is constant over the number of processes. In the other three lines, if the number of processes is 23 or 24, the speed is bigger than other measurements.  
+
 ```{r echo=FALSE}
 
 ggplot( data = ring_thin_mean, aes(x = Processor, y = Speed/1000)) +
@@ -323,8 +326,7 @@ ggplot( data = ring_thin_mean, aes(x = Processor, y = Speed/1000)) +
 
 ```
 
-In this plot below, you can see the difference from using a difference number of process, but instead to do the sum over the different time to complete a ring for each process, the processes are averaged. Then, I create a model to better representing the data.
-You can see that the line representing the mapping by core is constant over the number of processes. In the other three lines, if the number of processes is 23 or 24, the speed is bigger than other measurements.  
+
 
 
 

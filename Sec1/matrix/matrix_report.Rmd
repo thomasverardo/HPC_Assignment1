@@ -12,6 +12,7 @@ The matrix is initialized with random number and, after building the topology, t
 ```{r include=FALSE}
 library(tidyverse)
 library(ggplot2)
+require(gridExtra)
 
 mean_data <- function(matrix){
     n = 24
@@ -48,7 +49,8 @@ data_1200 <- mean_data(data_matrix[seq_shape[2]:(seq_shape[3]-1),])
 data_800 <- mean_data(data_matrix[seq_shape[3]:(seq_shape[4]-1),])
 
 data_1200 <- data_1200 %>%
-    add_column(speedup = data_1200[1,2]/data_1200$time)
+    add_column(speedup = data_1200[1,2]/data_1200$time) %>%
+    add_column(efficiency = data_1200$time/data_1200$n_process)
 
 
 #modeled with 1200x200x100 matrix (only this because are always equals)
@@ -108,69 +110,81 @@ dev.off()
 
 ```{r echo=FALSE}
 
-ggplot(data=data_1200, mapping = aes(x = n_process, y=time)) +
+plot_mapping <- ggplot(data=data_1200, mapping = aes(x = n_process, y=time)) +
     
     ggtitle("Different mapping") +
     xlab("N of process") +
     ylab("Time to process [s]") +
+    scale_y_continuous(limits = c(0, 0.51)) +
     
-    geom_point(aes(color = "default")) +
+    #geom_point(aes(color = "default")) +
     geom_line(aes(color = "default")) +
-    geom_point(data=data_core, aes(color = "core")) +
+    #geom_point(data=data_core, aes(color = "core")) +
     geom_line(data=data_core, aes(color = "core")) +
-    geom_point(data=data_socket, aes(color = "socket")) +
+    #geom_point(data=data_socket, aes(color = "socket")) +
     geom_line(data=data_socket, aes(color = "socket")) +
     
     scale_colour_manual("", 
                       breaks = c("default", "core", "socket"),
                       values = c("default" = "blue","core" = "purple", "socket" = "cyan")
-                      ) 
+                      ) +
+    theme(legend.position = "top")
 
 ```
-Here, there is the plot of the same matrix (1200x200x100), with the same topology (3D) but with different mapping and the result doesn't change. In fact, the time to process is always similar. We note that for the first 15 processes executed in parallel, the time is quiet constant, but after 16 processes in parallel, the time to compute decrease drastically and remains constant until the end.
+Here, there are two plots. The first is the plot with always the same matrix (1200x200x100), with the same topology (3D) but with different mapping and we can see the result doesn't change. In fact, the time to process is always similar. We note that for the first 15 processes executed in parallel, the time is quiet constant, but after 16 processes in parallel, the time to compute decrease drastically and remains constant until the end.
 
 
 ```{r echo=FALSE}
-#
-ggplot(data=data_1200, mapping = aes(x = n_process, y=time)) +
+
+
+plot_topology <- ggplot(data=data_1200, mapping = aes(x = n_process, y=time)) +
     
     ggtitle("Different topology dimension") +
     xlab("N of process") +
     ylab("Time to process [s]") +
+    scale_y_continuous(limits = c(0, 0.51)) +
     
-    geom_point(aes(color = "3D")) +
+    #geom_point(aes(color = "3D")) +
     geom_line(aes(color = "3D")) +
-    geom_point(data=data_2D, aes(color = "2D")) +
+    #geom_point(data=data_2D, aes(color = "2D")) +
     geom_line(data=data_2D, aes(color = "2D")) +
-    geom_point(data=data_1D, aes(color = "1D")) +
+    #geom_point(data=data_1D, aes(color = "1D")) +
     geom_line(data=data_1D, aes(color = "1D")) +
-    geom_point(data=data_notopology, aes(color = "no")) +
+    #geom_point(data=data_notopology, aes(color = "no")) +
     geom_line(data=data_notopology, aes(color = "no")) +
     
     scale_colour_manual("", 
                       breaks = c("3D", "2D", "1D", "no topology"),
                       values = c("3D" = "blue","2D" = "purple", "1D" = "red", "no topology" = "grey")
-                      ) 
+                      ) +
+    theme(legend.position = "top")
+
+
+grid.arrange(plot_mapping, plot_topology, ncol=2)
 
 ```
 
-Lastly, I computed the time to do the matrix-matrix sum with the same mapping and the same shape (1200x200x100) but with different topology. The 2D and 1D topology are the same, even because the matrix is a 3D array and the two topology are built with Nx, that is the number of processes ($[size]$ for 1D and $[size, 1]$ for 2D, as size the number of processes). We can see also that built a topology is useless because it has the same performance.
+After this, I computed the time to do the matrix-matrix sum with the same mapping and the same shape (1200x200x100) but with different topology, expressed in the second plot. The 2D and 1D topologies are the same, even because the matrix is a 3D array and the two the topologies are built with the same Nx, that is the number of processes ($[size]$ for 1D and $[size, 1]$ for 2D, as size the number of processes). We can see also that built a topology is useless because it has the same performance of the matrix without any topology.
 
-```{r eval=FALSE, include=FALSE}
-
+```{r echo=FALSE}
 ggplot(data=data_1200, aes(x=n_process, y=speedup)) +
     geom_line() +
+    geom_point() +
     stat_smooth( method = "loess", formula = 'y ~ x') +
-    geom_abline(intercept = 1, slope = 2)
+    geom_abline(intercept = 1, slope = 2, color="red") 
 
 ```
 
-<!-- Furthermore, I calculate the speedup for the matrix with the shape of 1200x200x100 with the default configuration and with the 3D topology. To calculated the speedup, I used this formula: -->
+Furthermore, I calculate the speedup for the matrix with the shape of 1200x200x100 with the default configuration and with the 3D topology. To calculated the speedup, I used the formula:
 
-<!-- $$ -->
-<!-- S_p = \frac{T_1}{T_p} -->
-<!-- $$ -->
-<!-- Where $T_1$ is the best time with one single process and $T_p$ is the time to calculated the matrix with p processes.  -->
+$$
+S_p = \frac{T_1}{T_p}
+$$
+Where $T_1$ is the best time with one single process and $T_p$ is the time to calculated the matrix with p processes. Then I calculated the efficiency, that is $speedup/n°processes$ and it's a value, that varies between zero and one, describe a measure of how well our parallel algorithm uses processors. As seen from the red line that represent the best theoretical parallel efficiency, the efficiency is not really good.
+
+
+
+
 
 ```{r include=FALSE}
 

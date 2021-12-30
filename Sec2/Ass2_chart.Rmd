@@ -7,10 +7,8 @@ output:
 
 ## SECTION 2 
 
-In this section, the main purpose was to estimate the latency and the bandwidth of all available combinations of topologies and networks on ORFEO computational nodes. for finding the latency and the bandwidth with the OpenMPI library, I writed a bash script that first submitted a job for running the code in the CPU or in the GPU, and than runned it for 10 times for each topologies. In this way, I can take the maximum of the result of each topologies, so to have better data to study. 
+In this section, the main purpose was to estimate the latency and the bandwidth of all available combinations of topologies and networks on ORFEO computational nodes. For finding the latency and the bandwidth with the OpenMPI library, I writed a bash script that first submitted a job for running the code in the CPU or in the GPU, and than runned it for 10 times for each topologies. In this way, I can take the mean of the results of each topologies, so to have better data to study. 
 
-
-Inserire MPI_barrier()
 
 <!-- ```{bash eval=FALSE, include=TRUE} -->
 

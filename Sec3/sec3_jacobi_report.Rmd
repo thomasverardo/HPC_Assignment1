@@ -13,7 +13,7 @@ With L as total time on a single process, N as the number of process, Ts as a ti
 $$ Tc(L,N) = \frac{c(L,N)}{B} + 4kT_l [seconds]$$
 B is the bandwidth, $T_l$ is the latency ($\lambda$) and c(L,N) is the message size:
 $$ c(L,N) = L^2*k*2*2*8 [byte] $$
-L^2 * k must be multiplied for 8 because the message is a double, for 2 because we are in a bidirectional case and another time for 2 for the positive and negative direction.
+$L^2 * k$ must be multiplied for 8 because the message is a double, for 2 because we are in a bidirectional case and another time for 2 for the positive and negative direction.
 
 ### Model prediction
 
