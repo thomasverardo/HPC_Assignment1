@@ -76,8 +76,8 @@ data_notopology <- mean_data(data_matrix_notopology[1:(dif_shape),])
 
 ```
 
-I produce different plots: the first one is not very useful and it represent the different shapes of the matrix in relation to the number of processes (the plot is in thi [LINK])
-one that represent the time to compute the matrix-matrix sum for different shapes and one with the same shape but with different mapping.
+I produce different plots: the first one is not very useful and it represent the different shapes of the matrix in relation to the number of processes (the plot is in the [LINK](https://github.com/thomasverardo/HPC_Assignment1/blob/master/Sec1/matrix/img/different_shapes.jpeg)).
+In that graph, we can see that, if we use different shapes, that are 2400x100x100 (red), 1200x200x100 (orange) and 800x300x100 (yellow), the time to sum the matrix is always the same, even using multiple processes. 
 
 ```{r eval=FALSE, include=FALSE}
 
@@ -104,7 +104,7 @@ ggplot(data=data_2400, mapping = aes(x = n_process, y=time)) +
 dev.off()
 ```
 
-In this graph, we can see that if we use different shapes, that are 2400x100x100 (red), 1200x200x100 (orange) and 800x300x100 (yellow), the time to sum the matrix is always the same, even using multiple processes. We note that for the first 15 processes executed in parallel, the time is quiet constant, but after 16 processes in parallel, the time to compute decrease drastically and remains constant until the end.
+
 
 ```{r echo=FALSE}
 
@@ -127,7 +127,7 @@ ggplot(data=data_1200, mapping = aes(x = n_process, y=time)) +
                       ) 
 
 ```
-Here, there is the plot of the same matrix (1200x200x100), with the same topology (3D) but with different mapping and the result doesn't change. In fact, the time to process is always similar.  
+Here, there is the plot of the same matrix (1200x200x100), with the same topology (3D) but with different mapping and the result doesn't change. In fact, the time to process is always similar. We note that for the first 15 processes executed in parallel, the time is quiet constant, but after 16 processes in parallel, the time to compute decrease drastically and remains constant until the end.
 
 
 ```{r echo=FALSE}
